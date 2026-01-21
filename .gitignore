@@ -1,1 +1,3 @@
 Hierarchical-Localization/
+.venv/
+*.egg-info/
