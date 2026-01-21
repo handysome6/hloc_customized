@@ -67,16 +67,24 @@ class LightGlueMatcher:
         self.matcher = LightGlue(features="superpoint").eval().to(device)
 
     def match(self, feats0: TorchFeatures, feats1: TorchFeatures) -> MatchResult:
-        inputs: Dict[str, torch.Tensor] = {
-            "keypoints0": feats0.keypoints.unsqueeze(0),
-            "keypoints1": feats1.keypoints.unsqueeze(0),
-            "descriptors0": feats0.descriptors.unsqueeze(0),
-            "descriptors1": feats1.descriptors.unsqueeze(0),
+        size0 = torch.tensor([feats0.image_size], device=self.device)
+        size1 = torch.tensor([feats1.image_size], device=self.device)
+        inputs: Dict[str, Dict[str, torch.Tensor]] = {
+            "image0": {
+                "keypoints": feats0.keypoints.unsqueeze(0),
+                "descriptors": feats0.descriptors.unsqueeze(0),
+                "image_size": size0,
+            },
+            "image1": {
+                "keypoints": feats1.keypoints.unsqueeze(0),
+                "descriptors": feats1.descriptors.unsqueeze(0),
+                "image_size": size1,
+            },
         }
         with torch.inference_mode():
             output = self.matcher(inputs)
         matches0 = _unbatch(output["matches0"]).cpu().numpy()
-        scores0 = _unbatch(output["scores0"]).cpu().numpy()
+        scores0 = _unbatch(output["matching_scores0"]).cpu().numpy()
         valid = matches0 > -1
         pairs = np.stack([np.nonzero(valid)[0], matches0[valid]], axis=1)
         return MatchResult(pairs=pairs, scores=scores0[valid])

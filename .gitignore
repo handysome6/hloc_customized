@@ -1,3 +1,5 @@
 Hierarchical-Localization/
 .venv/
 *.egg-info/
+__pycache__/
+*.ply
