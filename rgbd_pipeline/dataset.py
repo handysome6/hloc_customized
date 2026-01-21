@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable, List
 
 import numpy as np
+from loguru import logger
 
 
 @dataclass(frozen=True)
@@ -76,8 +77,11 @@ def load_dataset(
     load_depth: bool = True,
 ) -> List[FrameData]:
     frames: List[FrameData] = []
-    for frame_dir in discover_frames(root):
+    frame_dirs = discover_frames(root)
+    logger.info("Discovered {} frame folders under {}", len(frame_dirs), root)
+    for frame_dir in frame_dirs:
         frames.append(load_frame(frame_dir, load_depth=load_depth))
+    logger.info("Loaded {} frames (depth={})", len(frames), load_depth)
     return frames
 
 

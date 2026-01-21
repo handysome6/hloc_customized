@@ -5,6 +5,7 @@ from typing import Dict, List
 
 import numpy as np
 import open3d as o3d
+from loguru import logger
 
 from .dataset import FrameData
 from .geometry import Pose
@@ -21,6 +22,7 @@ def load_point_cloud(path: Path) -> o3d.geometry.PointCloud:
     cloud = o3d.io.read_point_cloud(str(path))
     if cloud.is_empty():
         raise ValueError(f"Loaded empty point cloud: {path}")
+    logger.info("Loaded point cloud {} ({} points)", path.name, len(cloud.points))
     return cloud
 
 
@@ -28,6 +30,7 @@ def save_point_cloud(path: Path, cloud: o3d.geometry.PointCloud) -> None:
     if cloud.is_empty():
         raise ValueError("No points available to save.")
     o3d.io.write_point_cloud(str(path), cloud, write_ascii=True)
+    logger.info("Wrote point cloud {} ({} points)", path.name, len(cloud.points))
 
 
 def fuse_point_clouds(
@@ -43,4 +46,5 @@ def fuse_point_clouds(
         cloud = load_point_cloud(frame.cloud_path)
         cloud.transform(_pose_to_matrix(pose))
         fused += cloud
+    logger.info("Fused point cloud with {} points", len(fused.points))
     save_point_cloud(output_path, fused)

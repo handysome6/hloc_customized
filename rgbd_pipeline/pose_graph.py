@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 import numpy as np
+from loguru import logger
 
 from .dataset import FrameData
 from .features import MatchResult, TorchFeatures
@@ -114,6 +115,7 @@ def build_verified_edges(
 ) -> List[VerifiedEdge]:
     frames_by_id = {frame.frame_id: frame for frame in frames}
     edges: List[VerifiedEdge] = []
+    logger.info("Verifying {} pairs with bidirectional PnP", len(matches))
     for pair in matches:
         frame_i = frames_by_id[pair.frame_id0]
         frame_j = frames_by_id[pair.frame_id1]
@@ -130,6 +132,7 @@ def build_verified_edges(
         )
         if edge is not None:
             edges.append(edge)
+    logger.info("Verified {} edges", len(edges))
     return edges
 
 
@@ -170,6 +173,7 @@ def maximum_spanning_tree(
             mst.append(edge)
         if len(mst) == len(frame_ids) - 1:
             break
+    logger.info("MST initialized with {} edges", len(mst))
     return mst
 
 
@@ -192,4 +196,5 @@ def initialize_poses(
                 continue
             poses[neighbor] = poses[current].compose(rel_pose)
             stack.append(neighbor)
+    logger.info("Initialized poses for {} frames", len(poses))
     return poses

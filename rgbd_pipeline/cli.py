@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from .pipeline import PipelineConfig, run_pipeline
+from loguru import logger
 
 
 def parse_args() -> argparse.Namespace:
@@ -21,11 +23,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reproj-error-px", type=float, default=4.0)
     parser.add_argument("--max-rot-deg", type=float, default=10.0)
     parser.add_argument("--max-trans-m", type=float, default=0.5)
+    parser.add_argument("--log-level", default="INFO", help="Log level")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    logger.remove()
+    logger.add(sys.stderr, level=args.log_level)
     config = PipelineConfig(
         device=args.device,
         max_keypoints=args.max_keypoints,

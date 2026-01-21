@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import torch
+from loguru import logger
 
 from .dataset import FrameData, load_dataset
 from .features import LightGlueExtractor, LightGlueMatcher
@@ -38,6 +39,7 @@ def run_pipeline(
     if config is None:
         config = PipelineConfig()
 
+    logger.info("Starting pipeline on {}", dataset_root)
     frames = load_dataset(dataset_root, load_depth=True)
     device = torch.device(config.device)
     extractor = LightGlueExtractor(device=device, max_keypoints=config.max_keypoints)
@@ -69,4 +71,5 @@ def run_pipeline(
     )
 
     fuse_point_clouds(frames, optimized, output_cloud)
+    logger.info("Saved fused point cloud to {}", output_cloud)
     return optimized, matches

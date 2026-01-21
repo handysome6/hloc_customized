@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, Iterable
 
 import numpy as np
+from loguru import logger
 
 from .geometry import Pose
 from .pose_graph import VerifiedEdge
@@ -30,6 +31,7 @@ def optimize_pose_graph(
     robust_kernel: str = "Huber",
     robust_param: float = 1.0,
 ) -> Dict[str, Pose]:
+    edges_list = list(edges)
     graph = gtsam.NonlinearFactorGraph()
     values = gtsam.Values()
 
@@ -41,7 +43,9 @@ def optimize_pose_graph(
     prior_noise = gtsam.noiseModel.Isotropic.Sigma(6, prior_sigma)
     root_id = next(iter(initial_poses.keys()))
     graph.add(
-        gtsam.PriorFactorPose3(key_lookup[root_id], _pose_to_gtsam(initial_poses[root_id]), prior_noise)
+        gtsam.PriorFactorPose3(
+            key_lookup[root_id], _pose_to_gtsam(initial_poses[root_id]), prior_noise
+        )
     )
 
     base_noise = gtsam.noiseModel.Isotropic.Sigma(6, between_sigma)
@@ -53,7 +57,7 @@ def optimize_pose_graph(
         kernel = gtsam.noiseModel.mEstimator.Tukey(robust_param)
     robust = gtsam.noiseModel.Robust(kernel, base_noise)
 
-    for edge in edges:
+    for edge in edges_list:
         pose_1_0 = _pose_to_gtsam(edge.pose_1_0)
         graph.add(
             gtsam.BetweenFactorPose3(
@@ -64,6 +68,12 @@ def optimize_pose_graph(
             )
         )
 
+    logger.info(
+        "Optimizing pose graph with {} poses and {} edges (kernel={})",
+        len(initial_poses),
+        len(edges_list),
+        robust_kernel,
+    )
     params = gtsam.LevenbergMarquardtParams()
     params.setVerbosityLM("ERROR")
     optimizer = gtsam.LevenbergMarquardtOptimizer(graph, values, params)
@@ -72,6 +82,7 @@ def optimize_pose_graph(
     optimized: Dict[str, Pose] = {}
     for frame_id, key in key_lookup.items():
         optimized[frame_id] = _pose_from_gtsam(result.atPose3(key))
+    logger.info("Optimization complete")
     return optimized
 
 
