@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import json
+
 import torch
 from loguru import logger
 
@@ -28,6 +30,8 @@ class PipelineConfig:
     between_sigma: float = 1e-2
     robust_kernel: str = "Huber"
     robust_param: float = 1.0
+    debug_report_path: Path | None = None
+    log_pair_failures: bool = False
 
 
 def run_pipeline(
@@ -48,7 +52,7 @@ def run_pipeline(
     features = extract_all_features(frames, extractor)
     matches = exhaustive_match(frames, features, matcher)
 
-    edges = build_verified_edges(
+    edges, stats = build_verified_edges(
         frames,
         features,
         matches,
@@ -57,9 +61,35 @@ def run_pipeline(
         max_rot_deg=config.max_rot_deg,
         max_trans_m=config.max_trans_m,
     )
+    if config.log_pair_failures:
+        for stat in stats:
+            if stat.status != "accepted":
+                logger.warning(
+                    "Pair {}-{} rejected: {} (matches={}, valid3d_fwd={}, valid3d_rev={}, inliers_fwd={}, inliers_rev={}, rot_err={:.2f}, trans_err={:.3f})",
+                    stat.frame_id0,
+                    stat.frame_id1,
+                    stat.reason,
+                    stat.matches,
+                    stat.valid_3d_forward,
+                    stat.valid_3d_reverse,
+                    stat.inliers_forward,
+                    stat.inliers_reverse,
+                    stat.rot_error_deg,
+                    stat.trans_error_m,
+                )
+    if config.debug_report_path is not None:
+        report = [stat.__dict__ for stat in stats]
+        config.debug_report_path.write_text(
+            json.dumps(report, indent=2), encoding="utf-8"
+        )
+        logger.info("Wrote verification report to {}", config.debug_report_path)
     frame_ids = [frame.frame_id for frame in frames]
     mst = maximum_spanning_tree(frame_ids, edges)
     initial = initialize_poses(frame_ids, mst, root_id=frame_ids[0])
+    if not edges:
+        logger.warning(
+            "No verified edges; consider relaxing thresholds or checking depth/intrinsics."
+        )
 
     optimized = optimize_pose_graph(
         initial,

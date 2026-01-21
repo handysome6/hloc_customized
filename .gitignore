@@ -3,3 +3,4 @@ Hierarchical-Localization/
 *.egg-info/
 __pycache__/
 *.ply
+pair_report.json

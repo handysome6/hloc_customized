@@ -24,6 +24,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-rot-deg", type=float, default=10.0)
     parser.add_argument("--max-trans-m", type=float, default=0.5)
     parser.add_argument("--log-level", default="INFO", help="Log level")
+    parser.add_argument(
+        "--debug-report",
+        type=Path,
+        default=None,
+        help="Write pair verification stats to JSON",
+    )
+    parser.add_argument(
+        "--log-pair-failures",
+        action="store_true",
+        help="Log rejection reasons for each pair",
+    )
     return parser.parse_args()
 
 
@@ -38,6 +49,8 @@ def main() -> None:
         reproj_error_px=args.reproj_error_px,
         max_rot_deg=args.max_rot_deg,
         max_trans_m=args.max_trans_m,
+        debug_report_path=args.debug_report,
+        log_pair_failures=args.log_pair_failures,
     )
     run_pipeline(args.dataset_root, args.output_cloud, config=config)
 

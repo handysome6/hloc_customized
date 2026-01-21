@@ -60,7 +60,7 @@ def project_depth_to_points(
         if x < 0 or x >= width or y < 0 or y >= height:
             continue
         z = float(depth_m[y, x])
-        if z <= 0.0 or np.isnan(z):
+        if z <= 0.0 or not np.isfinite(z):
             continue
         x_cam = (u - cx) / fx * z
         y_cam = (v - cy) / fy * z
